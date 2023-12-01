@@ -8,11 +8,11 @@ fun main() {
 }
 
 fun day1Part1Solution(path: String): Int {
-    return File(path).readLines().map { value ->
+    return File(path).readLines().sumOf { value ->
         val first = value.first { it.isDigit() }.digitToInt()
         val last = value.last { it.isDigit() }.digitToInt()
         first * 10 + last
-    }.sum()
+    }
 }
 
 fun String.firstMatch(list: Set<String>): String? {
@@ -35,7 +35,7 @@ fun String.lastMatch(list: Set<String>): String? {
 }
 
 fun day1Part2Solution(path: String): Int {
-    return File(path).readLines().map { value ->
+    return File(path).readLines().sumOf { value ->
         val numberMap = mapOf(
             "0" to 0,
             "1" to 1,
@@ -56,17 +56,17 @@ fun day1Part2Solution(path: String): Int {
             "six" to 6,
             "seven" to 7,
             "eight" to 8,
-            "nine" to 9)
+            "nine" to 9
+        )
         val firstDigit = value.firstMatch(numberMap.keys)
         val lastDigit = value.lastMatch(numberMap.keys)
-        if(firstDigit == null || lastDigit == null) {
+        if (firstDigit == null || lastDigit == null) {
             0
-        }
-        else {
+        } else {
             (numberMap[firstDigit] ?: 0) * 10 + (numberMap[lastDigit] ?: 0)
         }
 
-    }.sum()
+    }
 }
 
 
