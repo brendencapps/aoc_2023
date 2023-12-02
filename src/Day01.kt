@@ -18,8 +18,9 @@ fun day1Part1Solution(path: String): Int {
 fun String.firstMatch(list: Set<String>): String? {
     for(index in indices) {
         for(match in list) {
-            if(substring(index).startsWith(match))
+            if(substring(index).startsWith(match)) {
                 return match
+            }
         }
     }
     return null
@@ -27,8 +28,9 @@ fun String.firstMatch(list: Set<String>): String? {
 fun String.lastMatch(list: Set<String>): String? {
     for(index in indices) {
         for(match in list) {
-            if(substring(length - index - 1).startsWith(match))
+            if(substring(length - index - 1).startsWith(match)) {
                 return match
+            }
         }
     }
     return null
