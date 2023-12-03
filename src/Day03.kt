@@ -14,7 +14,7 @@ data class Symbol(val symbol: Char, val row: Int, val col: Int) {
 }
 data class PartNumber(val number: String, val row: Int, val col: Int )
 
-data class ProblemInput(val path: String, val numberList: MutableList<PartNumber> = mutableListOf(), val symbols: MutableList<Symbol> = mutableListOf()) {
+data class ProblemInput(val path: String, val parts: MutableList<PartNumber> = mutableListOf(), val symbols: MutableList<Symbol> = mutableListOf()) {
     init {
         File(path).readLines().forEachIndexed { row, value ->
             var currentNumber: String? = null
@@ -29,13 +29,13 @@ data class ProblemInput(val path: String, val numberList: MutableList<PartNumber
                         symbols.add(Symbol(ch, row, col))
                     }
                     if (currentNumber != null) {
-                        numberList.add(PartNumber(currentNumber!!, row, col))
+                        parts.add(PartNumber(currentNumber!!, row, col))
                         currentNumber = null
                     }
                 }
             }
             if (currentNumber != null) {
-                numberList.add(PartNumber(currentNumber!!, row, value.length))
+                parts.add(PartNumber(currentNumber!!, row, value.length))
                 currentNumber = null
             }
         }
@@ -44,7 +44,7 @@ data class ProblemInput(val path: String, val numberList: MutableList<PartNumber
 
 fun day3Part1Solution(path: String): Int {
     val problemInput = ProblemInput(path)
-    return problemInput.numberList.sumOf { number ->
+    return problemInput.parts.sumOf { number ->
         if(problemInput.symbols.any { it.nextToPartNumber(number) }) {
             number.number.toInt()
         }
@@ -58,7 +58,7 @@ fun day3Part2Solution(path: String): Int {
     val problemInput = ProblemInput(path)
     return problemInput.symbols.sumOf { symbol ->
         if(symbol.symbol == '*') {
-            val adjacentNumbers = problemInput.numberList.filter { symbol.nextToPartNumber(it) }
+            val adjacentNumbers = problemInput.parts.filter { symbol.nextToPartNumber(it) }
             if(adjacentNumbers.size == 2) {
                 adjacentNumbers[0].number.toInt() * adjacentNumbers[1].number.toInt()
             }
