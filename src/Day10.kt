@@ -4,8 +4,9 @@ fun main() {
     checkSolution("Day 10 Part 1 Example", day10Part1Solution("inputs/day10/example.txt"), 4)
     checkSolution("Day 10 Part 1 Example 2", day10Part1Solution("inputs/day10/example2.txt"), 8)
     checkSolution("Day 10 Part 1", day10Part1Solution("inputs/day10/part1.txt"), 6717)
-    //checkSolution("Day 10 Part 2 Example", day10Part2Solution("inputs/day10/example.txt"), 2)
-    //checkSolution("Day 10 Part 2", day10Part2Solution("inputs/day10/part1.txt"))
+    checkSolution("Day 10 Part 2 Example 1", day10Part2Solution("inputs/day10/example3.txt"), 4)
+    checkSolution("Day 10 Part 2 Example 2", day10Part2Solution("inputs/day10/example4.txt"), 8)
+    checkSolution("Day 10 Part 2", day10Part2Solution("inputs/day10/part1.txt"))
 }
 
 enum class PipeDirection {
@@ -21,28 +22,14 @@ enum class PipeDirection {
     }
 }
 
-/*
-class Pipe(letter: Char, val row: Int, val col: Int) {
-    val connections = when(letter) {
-        '|' -> listOf(PipeDirection.North, PipeDirection.South)
-        '-' -> listOf(PipeDirection.East, PipeDirection.West)
-        'L' -> listOf(PipeDirection.North, PipeDirection.East)
-        'J' -> listOf(PipeDirection.North, PipeDirection.West)
-        '7' -> listOf(PipeDirection.South, PipeDirection.West)
-        'F' -> listOf(PipeDirection.South, PipeDirection.East)
-        else -> listOf()
-    }
-    val isStart = letter == 'S'
-}
-*/
-
-class Pipe(val letter: Char, val row: Int, val col: Int)
+class Pipe(letter: Char, val row: Int, val col: Int)
 {
     val hasConnection = mutableListOf<PipeDirection>()
     val inside = mutableListOf<PipeDirection>()
     val isStart = letter == 'S'
     val connectedPipes = mutableMapOf<PipeDirection, Pipe>()
     var isInLoop = false
+    var isInside = false
 
     init {
         when(letter) {
@@ -100,18 +87,6 @@ class Pipe(val letter: Char, val row: Int, val col: Int)
             }
         }
 
-        fun computeInsideDirection(from: Pipe, fromDirection: PipeDirection) {
-            if(hasConnection.contains(PipeDirection.North) && hasConnection.contains(PipeDirection.South)) {
-                inside.addAll(from.inside)
-            }
-            if(hasConnection.contains(PipeDirection.East) && hasConnection.contains(PipeDirection.West)) {
-                inside.addAll(from.inside)
-            }
-            if(hasConnection.contains(PipeDirection.North) && hasConnection.contains(PipeDirection.East)) {
-                if()
-            }
-
-        }
     }
 
     fun getConnectedPipe(pipes: List<List<Pipe>>, direction: PipeDirection): Pipe {
@@ -129,21 +104,17 @@ class Pipe(val letter: Char, val row: Int, val col: Int)
     }
 }
 
-class PipeEntry(val pipe: Pipe, val directionFrom: PipeDirection, val insideDirection: List<PipeDirection> = listOf())
-
 class Pipes(path: String) {
 
     var maxSteps: Long = 0
     val pipes: List<List<Pipe>>
-
-    val startPipe: Pipe
 
     init {
         pipes = File(path).readLines().mapIndexed {row, line ->
             line.mapIndexed { col, pipe -> Pipe(pipe, row, col) }
         }
 
-        startPipe = pipes.first { row -> row.any { it.isStart } }.first { it.isStart }
+        val startPipe = pipes.first { row -> row.any { it.isStart } }.first { it.isStart }
         startPipe.updateStartPipe(pipes)
         startPipe.isInLoop = true
 
@@ -183,7 +154,11 @@ class Pipes(path: String) {
         }
     }
 
-    fun findFirstInLoop(): Pipe {
+    /**
+     * Searching from the top left to find a pipe in the loop must result in a corner pipe that goes south and
+     * east.
+     */
+    fun findTopLeftCorner(): Pipe {
         for(i in pipes.indices) {
             for(j in pipes[i].indices) {
                 if(pipes[i][j].isInLoop) {
@@ -200,80 +175,116 @@ fun day10Part1Solution(path: String): Long {
     return Pipes(path).maxSteps
 }
 
-fun getPipesConnectedToStart(startPipe: Pipe, pipes: List<List<Pipe>>): List<PipeEntry> {
-    val connectedPipes = mutableListOf<PipeEntry>()
-    if(startPipe.row > 0) {
-        val pipeToNorth = pipes[startPipe.row - 1][startPipe.col]
-        if(pipeToNorth.hasConnection.contains(PipeDirection.South)) {
-            PipeEntry(pipeToNorth, PipeDirection.South)
-        }
-    }
-    if(startPipe.row < pipes.lastIndex) {
-        val pipeToSouth = pipes[startPipe.row + 1][startPipe.col]
-        if(pipeToSouth.hasConnection.contains(PipeDirection.North)) {
-            connectedPipes.add(PipeEntry(pipeToSouth, PipeDirection.North))
-        }
-    }
-
-    if(startPipe.col > 0) {
-        val pipeToWest = pipes[startPipe.row][startPipe.col - 1]
-        if(pipeToWest.hasConnection.contains(PipeDirection.East)) {
-            connectedPipes.add(PipeEntry(pipeToWest, PipeDirection.East))
-        }
-    }
-    if(startPipe.col < pipes[startPipe.row].lastIndex) {
-        val pipeToEast = pipes[startPipe.row][startPipe.col + 1]
-        if(pipeToEast.hasConnection.contains(PipeDirection.West)) {
-            connectedPipes.add(PipeEntry(pipeToEast, PipeDirection.West))
-        }
-    }
-    return connectedPipes
-}
 
 fun day10Part2Solution(path: String): Long {
 
     val pipes = Pipes(path)
 
-    val firstInLoop = pipes.findFirstInLoop()
-    // We know that we started searching from outside so wherever this points it is pointing to inside.
-    firstInLoop.inside.addAll(firstInLoop.hasConnection)
-    var currentInLoop = firstInLoop.connectedPipes[firstInLoop.hasConnection[0]]
-    var currentDirection = firstInLoop.hasConnection[0]
-    while(currentInLoop != firstInLoop) {
-
-    }
-
-    return 0.toLong()
-}
-/*
-
-fun pipeIsInside(pipe: Pipe, pipes: List<List<Pipe>>, pipesInCycle: List<Pipe>): Boolean {
-    for(i in 0 until pipe.row) {
-        val pipeToCheck = pipes[i][pipe.col]
-        if(pipesInCycle.contains(pipeToCheck) &&
-    }
-}
-
-
-fun pipeIsInsideNorth(pipe: Pipe, pipes: List<List<Pipe>>, pipesInCycle: List<Pipe>): Boolean {
-    for(i in 0 until pipe.row) {
-        val pipeToCheck = pipes[i][pipe.col]
-        if(pipesInCycle.contains(pipeToCheck) && pipeToCheck.hasConnection.contains(PipeDirection.East) && pipeToCheck.hasConnection.contains(PipeDirection.West)) {
-            return true
+    val firstPipe = pipes.findTopLeftCorner()
+    check(firstPipe.hasConnection.contains(PipeDirection.South))
+    check(firstPipe.hasConnection.contains(PipeDirection.East))
+    firstPipe.inside.add(PipeDirection.South)
+    firstPipe.inside.add(PipeDirection.East)
+    var currentInsideVector = PipeDirection.East
+    var currentPipe = firstPipe.connectedPipes[PipeDirection.South]!!
+    var currentDirection = PipeDirection.South
+    while(currentPipe != firstPipe) {
+        currentPipe.inside.add(currentInsideVector)
+        if(
+            (currentPipe.hasConnection.contains(PipeDirection.North) && currentPipe.hasConnection.contains(PipeDirection.South)) ||
+            (currentPipe.hasConnection.contains(PipeDirection.East) && currentPipe.hasConnection.contains(PipeDirection.West))
+        ) {
+            // Straight pipe.  Just move.
+            currentPipe = currentPipe.connectedPipes[currentDirection]!!
+        }
+        else {
+            val nextDirection = currentPipe.hasConnection.first { it != currentDirection.reverseDirection() }
+            val nextInsideDirection = when(currentDirection) {
+                PipeDirection.North -> if(nextDirection == PipeDirection.East) {
+                    if(currentInsideVector == PipeDirection.West) {
+                        PipeDirection.North
+                    }
+                    else {
+                        PipeDirection.South
+                    }
+                } else {
+                    if(currentInsideVector == PipeDirection.West) {
+                        PipeDirection.South
+                    }
+                    else {
+                        PipeDirection.North
+                    }
+                }
+                PipeDirection.South -> if(nextDirection == PipeDirection.East) {
+                    if(currentInsideVector == PipeDirection.West) {
+                        PipeDirection.South
+                    }
+                    else {
+                        PipeDirection.North
+                    }
+                } else {
+                    if(currentInsideVector == PipeDirection.West) {
+                        PipeDirection.North
+                    }
+                    else {
+                        PipeDirection.South
+                    }
+                }
+                PipeDirection.East -> if(nextDirection == PipeDirection.North) {
+                    if(currentInsideVector == PipeDirection.North) {
+                        PipeDirection.West
+                    }
+                    else {
+                        PipeDirection.East
+                    }
+                } else {
+                    if(currentInsideVector == PipeDirection.North) {
+                        PipeDirection.East
+                    }
+                    else {
+                        PipeDirection.West
+                    }
+                }
+                PipeDirection.West -> if(nextDirection == PipeDirection.North) {
+                    if(currentInsideVector == PipeDirection.North) {
+                        PipeDirection.East
+                    }
+                    else {
+                        PipeDirection.West
+                    }
+                } else {
+                    if(currentInsideVector == PipeDirection.North) {
+                        PipeDirection.West
+                    }
+                    else {
+                        PipeDirection.East
+                    }
+                }
+            }
+            currentPipe.inside.add(nextInsideDirection)
+            currentInsideVector = nextInsideDirection
+            currentDirection = nextDirection
+            currentPipe = currentPipe.connectedPipes[nextDirection]!!
         }
     }
-    return false
-}
 
-
-fun pipeIsInsideSouth(pipe: Pipe, pipes: List<List<Pipe>>, pipesInCycle: List<Pipe>): Boolean {
-    for(i in pipe.row + 1 until pipes.size) {
-        val pipeToCheck = pipes[i][pipe.col]
-        if(pipesInCycle.contains(pipeToCheck) && pipeToCheck.hasConnection.contains(PipeDirection.East) && pipeToCheck.hasConnection.contains(PipeDirection.West)) {
-            return true
-        }
+    val total = pipes.pipes.sumOf {pipeRow ->
+        pipeRow.count {pipe ->
+            if(pipe.row > 0 && pipe.col > 0 && !pipe.isInLoop) {
+                for(i in 0 until pipe.col) {
+                    val pipeToLeft = pipes.pipes[pipe.row][pipe.col - i - 1]
+                    if(pipeToLeft.isInLoop) {
+                        pipe.isInside = pipeToLeft.inside.contains(PipeDirection.East)
+                        break
+                    }
+                }
+                pipe.isInside
+            }
+            else {
+                false
+            }
+        }.toLong()
     }
-    return false
-}
 
-*/
+    return total
+}
