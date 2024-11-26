@@ -1,91 +1,117 @@
 import java.io.File
-import java.lang.Long.min
+import java.util.*
 
 fun main() {
     checkSolution("Day 17 Part 1 Example", day17Part1Solution("inputs/day17/example.txt"), 102)
-    checkSolution("Day 17 Part 1", day17Part1Solution("inputs/day17/part1.txt"))
-    //checkSolution("Day 17 Part 2 Example", day17Part2Solution("inputs/day17/example.txt"))
-    //checkSolution("Day 17 Part 2 Example", day17Part2Solution("inputs/day17/part1.txt"))
+    checkSolution("Day 17 Part 1", day17Part1Solution("inputs/day17/part1.txt"), 959) // 963
+    checkSolution("Day 17 Part 2 Example", day17Part2Solution("inputs/day17/example.txt"), 94)
+    checkSolution("Day 17 Part 2 Example", day17Part2Solution("inputs/day17/part1.txt"))
 }
 
 enum class PathDirection {Left, Right, Up, Down}
+
+
+data class CityBlockNode(val row: Int, val col: Int, val heatLoss: Long, val direction: PathDirection, val directionCounter: Int, val parent: CityBlockNode?) {
+    fun key(): String {
+        return "$row:$col:$direction:$directionCounter"
+    }
+}
+
+// Need to create a bucket for each block, direction, and directionCounter that I can put paths in.
 class CityBlock(val heatLoss: Int, val row: Int, val col: Int)
 class Day17(input: String) {
-    val cityBlocks = File(input).readLines().mapIndexed {rowIndex, row ->
+    private val cityBlocks = File(input).readLines().mapIndexed {rowIndex, row ->
         row.mapIndexed { blockIndex, block ->
             CityBlock(block.digitToInt(), rowIndex, blockIndex)
         }
     }
-    val blockScore = cityBlocks.map {row -> row.map { Long.MAX_VALUE }.toMutableList() }.toMutableList()
+    private val rows = cityBlocks.size
+    private val cols = cityBlocks[0].size
+    private val blockNodes: PriorityQueue<CityBlockNode> = PriorityQueue<CityBlockNode>(compareBy { it.heatLoss })
+    private val nodesVisited = mutableSetOf<String>()
 
-    val cache = mutableMapOf<String, Long>()
 
-    fun getNextBlockMinHeat(nextBlock: CityBlock, path: List<CityBlock>, newDirection: PathDirection, oldDirection: PathDirection, directionCounter: Int): Long {
-        println("getNextBlockMinHeat ${nextBlock.row} ${nextBlock.col} $newDirection, $oldDirection, $directionCounter")
-        //if(blockScore[nextBlock.row][nextBlock.col] != Long.MAX_VALUE) {
-        //    return blockScore[nextBlock.row][nextBlock.col]
-        //}
-        val newDirectionCounter = if(newDirection == oldDirection) { directionCounter + 1 } else { 1 }
-        val cacheKey = "${nextBlock.row}_${nextBlock.col}_$newDirection$newDirectionCounter"
-        if(cache.contains(cacheKey)) {
-            return cache[cacheKey]!!
+    private fun getNeighbor(node: CityBlockNode, direction: PathDirection, minSteps: Int = 1, maxSteps: Int = 3): CityBlockNode? {
+        if(
+            node.directionCounter != 0 && (
+            node.direction == PathDirection.Up && direction == PathDirection.Down ||
+            node.direction == PathDirection.Down && direction == PathDirection.Up ||
+            node.direction == PathDirection.Left && direction == PathDirection.Right ||
+            node.direction == PathDirection.Right && direction == PathDirection.Left ||
+            (node.direction == direction && node.directionCounter >= maxSteps) ||
+            (node.direction != direction && node.directionCounter < minSteps))) {
+            return null
         }
-        if(!path.contains(nextBlock) && (newDirection != oldDirection || directionCounter < 3)) {
-            val heatLoss = minHeatLoss(nextBlock, path + nextBlock, newDirection, newDirectionCounter)
-            if(heatLoss == Long.MAX_VALUE) {
-                return Long.MAX_VALUE
+        val index = when(direction) {
+            PathDirection.Up -> Pair(node.row - 1, node.col)
+            PathDirection.Down -> Pair(node.row + 1, node.col)
+            PathDirection.Left -> Pair(node.row, node.col - 1)
+            PathDirection.Right -> Pair(node.row, node.col + 1)
+        }
+        if(index.first < 0 || index.first >= rows || index.second < 0 || index.second >= cols) {
+            return null
+        }
+        return CityBlockNode(
+            index.first,
+            index.second,
+            node.heatLoss + cityBlocks[index.first][index.second].heatLoss.toLong(),
+            direction,
+            if(node.direction == direction) { node.directionCounter + 1 } else { 1 },
+            node
+        )
+    }
+
+    fun minHeatLoss2(minSteps: Int, maxSteps: Int): Long {
+        blockNodes.add(CityBlockNode(0, 0, 0, PathDirection.Up, 0, null))
+
+        while(blockNodes.isNotEmpty()) {
+            val node = blockNodes.poll()
+            if(node.row == rows - 1 && node.col == cols - 1) {
+                val blockCopy = cityBlocks.map { row ->
+                    row.map { block ->
+                        block.heatLoss.toString()
+                    }.toMutableList()
+                }.toMutableList()
+                var nextNode = node
+                while(nextNode != null) {
+                    blockCopy[nextNode.row][nextNode.col] = when (nextNode.direction) {
+                        PathDirection.Up -> "^"
+                        PathDirection.Down -> "v"
+                        PathDirection.Left -> "<"
+                        PathDirection.Right -> ">"
+                    }
+                    nextNode = nextNode.parent
+                }
+                println("Heat Loss: ${node.heatLoss}")
+                blockCopy.forEach { row ->
+                    println(row.joinToString(""))
+                }
+                println("")
+
+                return node.heatLoss
             }
-            //blockScore[nextBlock.row][nextBlock.col] = min(blockScore[nextBlock.row][nextBlock.col], heatLoss + nextBlock.heatLoss)
-            cache[cacheKey] = heatLoss + nextBlock.heatLoss
-            return heatLoss + nextBlock.heatLoss
+            PathDirection.entries.forEach { direction ->
+                val neighbor = getNeighbor(node, direction, minSteps, maxSteps)
+                if(neighbor != null && !nodesVisited.contains(neighbor.key())) {
+                    blockNodes.add(neighbor)
+                    nodesVisited.add(neighbor.key())
+                }
+            }
         }
-        return Long.MAX_VALUE
+        return 0
     }
-
-    fun minHeatLoss(currentBlock: CityBlock, path: List<CityBlock>, direction: PathDirection, directionCounter: Int): Long {
-
-        println("MinHeatLoss ${currentBlock.row} ${currentBlock.col} $direction $directionCounter")
-        if(currentBlock.col == cityBlocks[0].lastIndex && currentBlock.row == cityBlocks.lastIndex) {
-            println("Found End")
-            return 0.toLong()
-        }
-
-        var minHeatLoss = Long.MAX_VALUE
-        if(currentBlock.col > 0) {
-            val block = cityBlocks[currentBlock.row][currentBlock.col - 1]
-            minHeatLoss = min(minHeatLoss, getNextBlockMinHeat(block, path, PathDirection.Left, direction, directionCounter))
-        }
-        if(currentBlock.col < cityBlocks[0].lastIndex) {
-            val block = cityBlocks[currentBlock.row][currentBlock.col + 1]
-            minHeatLoss = min(minHeatLoss, getNextBlockMinHeat(block, path, PathDirection.Right, direction, directionCounter))
-        }
-        if(currentBlock.row > 0) {
-            val block = cityBlocks[currentBlock.row - 1][currentBlock.col]
-            minHeatLoss = min(minHeatLoss, getNextBlockMinHeat(block, path, PathDirection.Up, direction, directionCounter))
-        }
-        if(currentBlock.row < cityBlocks.lastIndex) {
-            val block = cityBlocks[currentBlock.row + 1][currentBlock.col]
-            minHeatLoss = min(minHeatLoss, getNextBlockMinHeat(block, path, PathDirection.Down, direction, directionCounter))
-        }
-        return minHeatLoss
-    }
-
 
 }
 
 fun day17Part1Solution(path: String): Long {
     val problem = Day17(path)
-    val heatLoss = problem.minHeatLoss(problem.cityBlocks.first().first(), listOf(), PathDirection.Up, 0)
-    for(i in problem.blockScore.indices) {
-        for( j in problem.blockScore[i].indices) {
-            print("${problem.blockScore[i][j]}:${problem.cityBlocks[i][j].heatLoss} ")
-        }
-        println("")
-    }
+    val heatLoss = problem.minHeatLoss2(1, 3)
     return heatLoss
 }
 
 
 fun day17Part2Solution(path: String): Long {
-    return 0.toLong()
+    val problem = Day17(path)
+    val heatLoss = problem.minHeatLoss2(4, 10)
+    return heatLoss
 }
